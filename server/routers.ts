@@ -72,6 +72,7 @@ export const appRouter = router({
           title: note.title,
           content: note.password ? null : note.content,
           hasPassword: !!note.password,
+          userId: note.userId,
           createdAt: note.createdAt,
           updatedAt: note.updatedAt,
         };

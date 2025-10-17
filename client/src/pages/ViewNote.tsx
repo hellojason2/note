@@ -1,20 +1,31 @@
+import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
-import { Lock } from "lucide-react";
+import { Lock, Edit, Save, X } from "lucide-react";
 
 export default function ViewNote() {
+  const { user } = useAuth();
   const [, params] = useRoute("/note/:slug");
   const [, setLocation] = useLocation();
   const slug = params?.slug || "";
   
   const [password, setPassword] = useState("");
   const [unlockedContent, setUnlockedContent] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [editContent, setEditContent] = useState("");
+  const [editPassword, setEditPassword] = useState("");
+  const [hasPasswordChange, setHasPasswordChange] = useState(false);
+  
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const utils = trpc.useUtils();
 
   const { data: note, isLoading, error } = trpc.notes.getBySlug.useQuery(
     { slug },
@@ -31,6 +42,61 @@ export default function ViewNote() {
     },
   });
 
+  const updateMutation = trpc.notes.update.useMutation({
+    onSuccess: () => {
+      toast.success("Note saved");
+      utils.notes.getBySlug.invalidate({ slug });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+
+  // Initialize edit fields when entering edit mode
+  useEffect(() => {
+    if (isEditing && note) {
+      setEditTitle(note.title);
+      setEditContent(unlockedContent || note.content || "");
+      setEditPassword("");
+      setHasPasswordChange(false);
+    }
+  }, [isEditing, note, unlockedContent]);
+
+  // Auto-save with debounce
+  useEffect(() => {
+    if (!isEditing || !note) return;
+
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    saveTimeoutRef.current = setTimeout(() => {
+      const updateData: {
+        id: string;
+        title?: string;
+        content?: string;
+        password?: string | null;
+      } = {
+        id: note.id,
+        title: editTitle,
+        content: editContent,
+      };
+
+      // Only include password if user explicitly changed it
+      if (hasPasswordChange) {
+        updateData.password = editPassword.trim() || null;
+      }
+
+      updateMutation.mutate(updateData);
+    }, 1000); // Auto-save after 1 second of inactivity
+
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [editTitle, editContent, editPassword, hasPasswordChange, isEditing, note]);
+
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!password.trim()) {
@@ -38,6 +104,13 @@ export default function ViewNote() {
       return;
     }
     verifyMutation.mutate({ slug, password });
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
   };
 
   if (isLoading) {
@@ -68,30 +141,62 @@ export default function ViewNote() {
 
   const displayContent = unlockedContent || note.content;
   const isLocked = note.hasPassword && !unlockedContent;
+  const isOwner = user?.id === note.userId;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 py-12">
       <div className="max-w-4xl mx-auto">
-        <div className="mb-6">
+        <div className="mb-6 flex items-center justify-between">
           <Button variant="ghost" onClick={() => setLocation("/")}>
             ← Back to Home
           </Button>
+          {isOwner && !isLocked && !isEditing && (
+            <Button onClick={() => setIsEditing(true)}>
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Note
+            </Button>
+          )}
+          {isEditing && (
+            <Button variant="outline" onClick={handleCancelEdit}>
+              <X className="w-4 h-4 mr-2" />
+              Cancel
+            </Button>
+          )}
         </div>
 
         <Card>
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <CardTitle className="text-3xl mb-2">{note.title}</CardTitle>
-                <CardDescription>
-                  Created: {note.createdAt ? new Date(note.createdAt).toLocaleDateString() : "Unknown"}
-                  {note.hasPassword && (
-                    <span className="ml-3 inline-flex items-center gap-1 text-amber-600">
-                      <Lock className="w-3 h-3" />
-                      Password Protected
-                    </span>
-                  )}
-                </CardDescription>
+                {isEditing ? (
+                  <div className="space-y-3">
+                    <div>
+                      <Label htmlFor="edit-title">Title</Label>
+                      <Input
+                        id="edit-title"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        className="text-2xl font-bold"
+                      />
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Auto-saving... {updateMutation.isPending && <span className="text-blue-600">Saving...</span>}
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <CardTitle className="text-3xl mb-2">{note.title}</CardTitle>
+                    <CardDescription>
+                      Created: {note.createdAt ? new Date(note.createdAt).toLocaleDateString() : "Unknown"}
+                      {note.hasPassword && (
+                        <span className="ml-3 inline-flex items-center gap-1 text-amber-600">
+                          <Lock className="w-3 h-3" />
+                          Password Protected
+                        </span>
+                      )}
+                    </CardDescription>
+                  </>
+                )}
               </div>
             </div>
           </CardHeader>
@@ -120,6 +225,43 @@ export default function ViewNote() {
                     {verifyMutation.isPending ? "Verifying..." : "Unlock Note"}
                   </Button>
                 </form>
+              </div>
+            ) : isEditing ? (
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-content">Content</Label>
+                  <Textarea
+                    id="edit-content"
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    rows={15}
+                    className="resize-y font-mono"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="edit-password">Change Password (Optional)</Label>
+                  <Input
+                    id="edit-password"
+                    type="password"
+                    placeholder="Leave empty to keep current password, or enter new password"
+                    value={editPassword}
+                    onChange={(e) => {
+                      setEditPassword(e.target.value);
+                      setHasPasswordChange(true);
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {note.hasPassword 
+                      ? "Currently password protected. Enter a new password to change it, or leave empty to keep the current one."
+                      : "Enter a password to protect this note, or leave empty to keep it public."}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Save className="w-4 h-4" />
+                  <span>Changes are automatically saved as you type</span>
+                </div>
               </div>
             ) : (
               <div className="prose prose-slate max-w-none">
