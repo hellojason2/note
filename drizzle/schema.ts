@@ -18,4 +18,21 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+/**
+ * Notes table for storing user-created notes
+ * Each note has a unique slug for URL access (e.g., /note/my-note)
+ * Optional password field for protected notes
+ */
+export const notes = mysqlTable("notes", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  slug: varchar("slug", { length: 255 }).notNull().unique(),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  password: varchar("password", { length: 255 }), // bcrypt hash if password-protected
+  userId: varchar("userId", { length: 64 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
+});
+
+export type Note = typeof notes.$inferSelect;
+export type InsertNote = typeof notes.$inferInsert;

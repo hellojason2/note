@@ -5,12 +5,18 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import CreateNote from "./pages/CreateNote";
+import ViewNote from "./pages/ViewNote";
+import MyNotes from "./pages/MyNotes";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path={"/"} component={Home} />
+      <Route path="/create" component={CreateNote} />
+      <Route path="/note/:slug" component={ViewNote} />
+      <Route path="/my-notes" component={MyNotes} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />
