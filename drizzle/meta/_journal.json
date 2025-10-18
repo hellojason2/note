@@ -15,6 +15,13 @@
       "when": 1760700518665,
       "tag": "0001_redundant_mole_man",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1760755136936,
+      "tag": "0002_lumpy_wrecker",
+      "breakpoints": true
     }
   ]
 }

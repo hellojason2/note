@@ -29,7 +29,7 @@ export const notes = mysqlTable("notes", {
   title: text("title").notNull(),
   content: text("content").notNull(),
   password: varchar("password", { length: 255 }), // bcrypt hash if password-protected
-  userId: varchar("userId", { length: 64 }).notNull(),
+  userId: varchar("userId", { length: 64 }), // Nullable to allow anonymous notes
   createdAt: timestamp("createdAt").defaultNow(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow(),
 });
