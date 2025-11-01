@@ -76,7 +76,7 @@ export default function Home() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-slate-600">
-                Create custom slugs like <span className="font-mono bg-slate-100 px-1 rounded">/note/my-ideas</span> for easy sharing
+                Create custom slugs like <span className="font-mono bg-slate-100 px-1 rounded">/my-ideas</span> for easy sharing
               </p>
             </CardContent>
           </Card>

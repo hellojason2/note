@@ -95,7 +95,7 @@ export async function createNote(data: {
   title: string;
   content: string;
   password?: string;
-  userId: string;
+  userId: string | null;
 }): Promise<Note> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

@@ -15,8 +15,8 @@ function Router() {
     <Switch>
       <Route path={"/"} component={Home} />
       <Route path="/create" component={CreateNote} />
-      <Route path="/note/:slug" component={ViewNote} />
       <Route path="/my-notes" component={MyNotes} />
+      <Route path="/:slug" component={ViewNote} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

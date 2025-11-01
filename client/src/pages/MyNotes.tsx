@@ -91,7 +91,7 @@ export default function MyNotes() {
                       <CardTitle className="text-xl mb-1 truncate">{note.title}</CardTitle>
                       <CardDescription className="flex items-center gap-3 flex-wrap">
                         <span className="font-mono text-xs bg-slate-100 px-2 py-1 rounded">
-                          /note/{note.slug}
+                          /{note.slug}
                         </span>
                         {note.password && (
                           <span className="inline-flex items-center gap-1 text-amber-600 text-xs">
@@ -108,7 +108,7 @@ export default function MyNotes() {
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => setLocation(`/note/${note.slug}`)}
+                        onClick={() => setLocation(`/${note.slug}`)}
                       >
                         <ExternalLink className="w-4 h-4" />
                       </Button>

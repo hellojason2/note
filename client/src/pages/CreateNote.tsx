@@ -21,7 +21,7 @@ export default function CreateNote() {
   const createMutation = trpc.notes.create.useMutation({
     onSuccess: (data) => {
       toast.success("Note created successfully!");
-      setLocation(`/note/${data.slug}`);
+      setLocation(`/${data.slug}`);
     },
     onError: (error) => {
       toast.error(error.message);
@@ -81,7 +81,7 @@ export default function CreateNote() {
                   </Button>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  Your note will be accessible at: <span className="font-mono">/note/{slug || "your-slug"}</span>
+                  Your note will be accessible at: <span className="font-mono">/{slug || "your-slug"}</span>
                 </p>
               </div>
 

@@ -12,7 +12,7 @@ import { Lock, Edit, Save, X } from "lucide-react";
 
 export default function ViewNote() {
   const { user } = useAuth();
-  const [, params] = useRoute("/note/:slug");
+  const [, params] = useRoute("/:slug");
   const [, setLocation] = useLocation();
   const slug = params?.slug || "";
   
