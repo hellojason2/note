@@ -49,31 +49,7 @@ export default function CreateNote() {
     setSlug(randomSlug);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Login Required</CardTitle>
-            <CardDescription>You need to login to create notes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Button asChild className="w-full">
-              <a href={getLoginUrl()}>Login</a>
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // Login is optional - users can create notes anonymously
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 py-12">

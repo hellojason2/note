@@ -20,8 +20,8 @@ export const appRouter = router({
   }),
 
   notes: router({
-    // Create a new note
-    create: protectedProcedure
+    // Create a new note (public - no login required)
+    create: publicProcedure
       .input(
         z.object({
           slug: z.string().min(1).max(255),
@@ -47,7 +47,7 @@ export const appRouter = router({
           title: input.title,
           content: input.content,
           password: input.password,
-          userId: ctx.user.id,
+          userId: ctx.user?.id || null, // Allow anonymous notes
         });
       }),
 
