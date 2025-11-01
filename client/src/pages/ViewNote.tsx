@@ -8,7 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { useEffect, useState, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { toast } from "sonner";
-import { Lock, Edit, Save, X } from "lucide-react";
+import { Lock, Save } from "lucide-react";
 
 export default function ViewNote() {
   const { user } = useAuth();
@@ -18,11 +18,11 @@ export default function ViewNote() {
   
   const [password, setPassword] = useState("");
   const [unlockedContent, setUnlockedContent] = useState<string | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [editContent, setEditContent] = useState("");
   const [editPassword, setEditPassword] = useState("");
   const [hasPasswordChange, setHasPasswordChange] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const utils = trpc.useUtils();
@@ -35,6 +35,7 @@ export default function ViewNote() {
   const verifyMutation = trpc.notes.verifyPassword.useMutation({
     onSuccess: (data) => {
       setUnlockedContent(data.content);
+      setEditContent(data.content);
       toast.success("Password correct!");
     },
     onError: (error) => {
@@ -44,31 +45,37 @@ export default function ViewNote() {
 
   const updateMutation = trpc.notes.update.useMutation({
     onSuccess: () => {
-      toast.success("Note saved");
+      setIsSaving(false);
       utils.notes.getBySlug.invalidate({ slug });
     },
     onError: (error) => {
+      setIsSaving(false);
       toast.error(error.message);
     },
   });
 
-  // Initialize edit fields when entering edit mode
+  // Initialize edit fields when note loads
   useEffect(() => {
-    if (isEditing && note) {
+    if (note) {
       setEditTitle(note.title);
       setEditContent(unlockedContent || note.content || "");
       setEditPassword("");
       setHasPasswordChange(false);
     }
-  }, [isEditing, note, unlockedContent]);
+  }, [note, unlockedContent]);
 
   // Auto-save with debounce
   useEffect(() => {
-    if (!isEditing || !note) return;
+    if (!note || !isOwner) return;
+
+    // Don't auto-save if content hasn't been initialized yet
+    if (editTitle === "" && editContent === "") return;
 
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
+
+    setIsSaving(true);
 
     saveTimeoutRef.current = setTimeout(() => {
       const updateData: {
@@ -95,22 +102,13 @@ export default function ViewNote() {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [editTitle, editContent, editPassword, hasPasswordChange, isEditing, note]);
+  }, [editTitle, editContent, editPassword, hasPasswordChange, note]);
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!password.trim()) {
-      toast.error("Please enter a password");
-      return;
-    }
-    verifyMutation.mutate({ slug, password });
-  };
+    if (!slug || !password) return;
 
-  const handleCancelEdit = () => {
-    setIsEditing(false);
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
+    verifyMutation.mutate({ slug, password });
   };
 
   if (isLoading) {
@@ -127,12 +125,10 @@ export default function ViewNote() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle>Note Not Found</CardTitle>
-            <CardDescription>The note you're looking for doesn't exist</CardDescription>
+            <CardDescription>This note doesn't exist or has been deleted</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => setLocation("/")} className="w-full">
-              Go Home
-            </Button>
+            <Button onClick={() => setLocation("/")}>Go Home</Button>
           </CardContent>
         </Card>
       </div>
@@ -150,17 +146,17 @@ export default function ViewNote() {
           <Button variant="ghost" onClick={() => setLocation("/")}>
             ← Back to Home
           </Button>
-          {isOwner && !isLocked && !isEditing && (
-            <Button onClick={() => setIsEditing(true)}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit Note
-            </Button>
+          {isOwner && isSaving && (
+            <div className="flex items-center gap-2 text-sm text-blue-600">
+              <Save className="w-4 h-4 animate-pulse" />
+              <span>Saving...</span>
+            </div>
           )}
-          {isEditing && (
-            <Button variant="outline" onClick={handleCancelEdit}>
-              <X className="w-4 h-4 mr-2" />
-              Cancel
-            </Button>
+          {isOwner && !isSaving && !isLocked && (
+            <div className="flex items-center gap-2 text-sm text-green-600">
+              <Save className="w-4 h-4" />
+              <span>Saved</span>
+            </div>
           )}
         </div>
 
@@ -168,19 +164,17 @@ export default function ViewNote() {
           <CardHeader>
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                {isEditing ? (
+                {isOwner && !isLocked ? (
                   <div className="space-y-3">
                     <div>
-                      <Label htmlFor="edit-title">Title</Label>
+                      <Label htmlFor="edit-title" className="text-sm text-muted-foreground mb-2">Title</Label>
                       <Input
                         id="edit-title"
                         value={editTitle}
                         onChange={(e) => setEditTitle(e.target.value)}
-                        className="text-2xl font-bold"
+                        className="text-2xl font-bold border-none shadow-none px-0 focus-visible:ring-0"
+                        placeholder="Note title..."
                       />
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Auto-saving... {updateMutation.isPending && <span className="text-blue-600">Saving...</span>}
                     </div>
                   </div>
                 ) : (
@@ -226,25 +220,26 @@ export default function ViewNote() {
                   </Button>
                 </form>
               </div>
-            ) : isEditing ? (
+            ) : isOwner ? (
               <div className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="edit-content">Content</Label>
+                  <Label htmlFor="edit-content" className="text-sm text-muted-foreground">Content</Label>
                   <Textarea
                     id="edit-content"
                     value={editContent}
                     onChange={(e) => setEditContent(e.target.value)}
                     rows={15}
-                    className="resize-y font-mono"
+                    className="resize-y font-mono text-base"
+                    placeholder="Start typing your note..."
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="edit-password">Change Password (Optional)</Label>
+                  <Label htmlFor="edit-password">Password Protection (Optional)</Label>
                   <Input
                     id="edit-password"
                     type="password"
-                    placeholder="Leave empty to keep current password, or enter new password"
+                    placeholder={note.hasPassword ? "Enter new password to change" : "Add password to protect"}
                     value={editPassword}
                     onChange={(e) => {
                       setEditPassword(e.target.value);
@@ -258,14 +253,14 @@ export default function ViewNote() {
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-slate-50 p-3 rounded-lg">
                   <Save className="w-4 h-4" />
-                  <span>Changes are automatically saved as you type</span>
+                  <span>All changes are automatically saved as you type</span>
                 </div>
               </div>
             ) : (
               <div className="prose prose-slate max-w-none">
-                <div className="whitespace-pre-wrap text-slate-700 leading-relaxed">
+                <div className="whitespace-pre-wrap text-slate-700 leading-relaxed text-base">
                   {displayContent || <em className="text-slate-400">No content</em>}
                 </div>
               </div>

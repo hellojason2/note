@@ -12,3 +12,6 @@
 ## New Tasks
 - [x] Remove /note/ prefix from URLs - make notes accessible at domain.com/slug instead of domain.com/note/slug
 
+
+- [x] Make note content always editable with auto-save as you type (no edit button needed)
+
