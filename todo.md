@@ -15,3 +15,6 @@
 
 - [x] Make note content always editable with auto-save as you type (no edit button needed)
 
+
+- [x] Fix "[Auth] Missing session cookie" warnings in Railway deployment logs
+
