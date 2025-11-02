@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: notes-app
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: pnpm install && pnpm build
+    startCommand: pnpm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: OAUTH_SERVER_URL
+        value: https://api.manus.im
+      - key: VITE_OAUTH_PORTAL_URL
+        value: https://oauth.manus.im
+      - key: VITE_APP_ID
+        sync: false
+      - key: VITE_APP_TITLE
+        value: Notes App
+      - key: VITE_APP_LOGO
+        value: ""
+      - key: OWNER_OPEN_ID
+        sync: false
+      - key: OWNER_NAME
+        sync: false
+      - key: BUILT_IN_FORGE_API_KEY
+        sync: false
+      - key: BUILT_IN_FORGE_API_URL
+        value: https://api.manus.im
+      - key: VITE_ANALYTICS_ENDPOINT
+        value: ""
+      - key: VITE_ANALYTICS_WEBSITE_ID
+        value: ""
+
+databases:
+  - name: notes-db
+    databaseName: notes
+    user: notes_user
+    plan: free
+

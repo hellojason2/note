@@ -18,3 +18,6 @@
 
 - [x] Fix "[Auth] Missing session cookie" warnings in Railway deployment logs
 
+
+- [x] Create Render.com deployment configuration
+
